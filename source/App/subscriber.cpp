@@ -1,14 +1,14 @@
 #include "subscriber.h"
 
 void subscribe_listener::on_failure(const mqtt::token &tok) {
-	Log(ERROR_LOG_LEVEL, "[Subscriber] %s failure for token[%d]", name_.c_str(), tok.get_message_id());
+	g_data::log(ERROR_LOG_LEVEL, "[Subscriber] %s failure for token[%d]", name_.c_str(), tok.get_message_id());
 }
 
 void subscribe_listener::on_success(const mqtt::token &tok) {
-	Log(INFO_LOG_LEVEL, "[Subscriber] %s success for token[%d]", name_.c_str(), tok.get_message_id());
+	g_data::log(INFO_LOG_LEVEL, "[Subscriber] %s success for token[%d]", name_.c_str(), tok.get_message_id());
 	auto top = tok.get_topics();
 	if (top && !top->empty()) {
-		Log(INFO_LOG_LEVEL, "[Subscriber] %s token[%d] topic[%s]", name_.c_str(), tok.get_message_id(), (*top)[0].c_str());
+		g_data::log(INFO_LOG_LEVEL, "[Subscriber] %s token[%d] topic[%s]", name_.c_str(), tok.get_message_id(), (*top)[0].c_str());
 	}
 }
 
@@ -22,8 +22,8 @@ void subscriber_callback::set_topic(const std::vector<std::string> &topics, cons
 	qos_ = qos;
 
 	if (topics.size() != qos.size()) {
-		Log(WARN_LOG_LEVEL, "[subscriber_callback] Topic count != QoS count");
-		Log(WARN_LOG_LEVEL, "[subscriber_callback] All topic qos set 0.");
+		g_data::log(WARN_LOG_LEVEL, "[subscriber_callback] Topic count != QoS count");
+		g_data::log(WARN_LOG_LEVEL, "[subscriber_callback] All topic qos set 0.");
 		qos_.clear();
 		for (auto it : topics_) {
 			qos_.push_back(0);
@@ -34,27 +34,27 @@ void subscriber_callback::set_topic(const std::vector<std::string> &topics, cons
 void subscriber_callback::reconnect() {
 	std::this_thread::sleep_for(std::chrono::milliseconds(2500));
 	try {
-		Log(INFO_LOG_LEVEL, "[subscriber_callback] Reconnecting to the MQTT server...");
+		g_data::log(INFO_LOG_LEVEL, "[subscriber_callback] Reconnecting to the MQTT server...");
 		client_.connect(opts_, nullptr, *this);
 	} catch (const mqtt::exception &exc) {
-		Log(ERROR_LOG_LEVEL, "[subscriber_callback] Unable to reconnect to MQTT server[what:%s]", exc.what());
+		g_data::log(ERROR_LOG_LEVEL, "[subscriber_callback] Unable to reconnect to MQTT server[what:%s]", exc.what());
 	}
 }
 
 void subscriber_callback::on_failure(const mqtt::token &tok) {
-	Log(ERROR_LOG_LEVEL, "[subscriber_callback] Connection attempt failed.");
+	g_data::log(ERROR_LOG_LEVEL, "[subscriber_callback] Connection attempt failed.");
 	reconnect();
 }
 
 void subscriber_callback::connected(const std::string& cause) {
-	Log(INFO_LOG_LEVEL, "[subscriber_callback] Connection success. Try subscribe.");
+	g_data::log(INFO_LOG_LEVEL, "[subscriber_callback] Connection success. Try subscribe.");
 	for (size_t i = 0; i < topics_.size(); i++) {
 		client_.subscribe(topics_[i], qos_[i], nullptr, listener_);
 	}
 }
 
 void subscriber_callback::connection_lost(const std::string& cause) {
-	Log(ERROR_LOG_LEVEL, "[subscriber_callback] Connection lost.[cause:%s]", cause.c_str());
+	g_data::log(ERROR_LOG_LEVEL, "[subscriber_callback] Connection lost.[cause:%s]", cause.c_str());
 	reconnect();
 }
 
@@ -81,15 +81,15 @@ mqtt_subscriber::mqtt_subscriber(const char *address, const char *user, const ch
 
 void mqtt_subscriber::connect() {
 	try {
-		Log(INFO_LOG_LEVEL, "[mqtt_subscriber] Connecting to the MQTT server...[address:%s]", address_.c_str());
+		g_data::log(INFO_LOG_LEVEL, "[mqtt_subscriber] Connecting to the MQTT server...[address:%s]", address_.c_str());
 		client_.connect(opts_, nullptr, cb_);
 	} catch (const mqtt::exception &exc) {
-		Log(ERROR_LOG_LEVEL, "[mqtt_subscriber] Unable to connect to MQTT server[address:%s][what:%s]", address_.c_str(), exc.what());
+		g_data::log(ERROR_LOG_LEVEL, "[mqtt_subscriber] Unable to connect to MQTT server[address:%s][what:%s]", address_.c_str(), exc.what());
 	}
 }
 
 void mqtt_subscriber::disconnect() {
-	Log(INFO_LOG_LEVEL, "[mqtt_subscriber] Disconnecting from the MQTT server...[address:%s]", address_.c_str());
+	g_data::log(INFO_LOG_LEVEL, "[mqtt_subscriber] Disconnecting from the MQTT server...[address:%s]", address_.c_str());
 	client_.disconnect()->wait();
 }
 

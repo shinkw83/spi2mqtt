@@ -4,6 +4,7 @@
 #include "xthread.h"
 #include "json.h"
 #include "xpacket.h"
+#include "config.h"
 #include <zmq.hpp>
 #include <vector>
 #include <map>
@@ -12,10 +13,30 @@
 #include "logger.hpp"
 #include <stdarg.h>
 
+typedef struct mqtt_conn_info {
+	std::string mqtt_address_;
+    std::string mqtt_user_;
+	std::string mqtt_password_;
+} mqtt_conn_info;
+
 class g_data : public singleton_T<g_data> {
 public:
 	g_data() : ctx_() {
-		logmgr_ = new LogMgrC("spi2mqtt_log.log", "spi2mqtt");
+		std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+		std::chrono::system_clock::duration tp = now.time_since_epoch();
+		tp -= std::chrono::duration_cast<std::chrono::seconds>(tp);
+
+		time_t tt = std::chrono::system_clock::to_time_t(now);
+		struct tm *t = localtime(&tt);
+
+		char path[1024] = {0, };
+		snprintf(path, sizeof(path), "log/spi2mqtt_%04u-%02u-%02u_%02u:%02u:%02u",
+				t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min,
+				t->tm_sec);
+
+		logmgr_ = new LogMgrC(path, "spi2mqtt");
+
+		zmq_mq_address_ = "inproc://pub_mqtt_proc";
 	}
 
 	virtual ~g_data() {
@@ -29,6 +50,21 @@ public:
 	static zmq::context_t &context() {
 		g_data *data = g_data::GetInstance();
 		return data->ctx_;
+	}
+
+	static const char *zmq_mq_address() {
+		g_data *data = g_data::GetInstance();
+		return data->zmq_mq_address_.c_str();
+	}
+
+	static void set_mqtt_info(const mqtt_conn_info &info) {
+		g_data *data = g_data::GetInstance();
+		data->mq_con_info_ = info;
+	}
+
+	static mqtt_conn_info &mq_info() {
+		g_data *data = g_data::GetInstance();
+		return data->mq_con_info_;
 	}
 
 	static void set_log_level(int level) {
@@ -69,5 +105,9 @@ public:
 private:
 	zmq::context_t ctx_;
 
+	std::string zmq_mq_address_;
+
 	LogMgrC *logmgr_ = nullptr;
+
+	mqtt_conn_info mq_con_info_;
 };

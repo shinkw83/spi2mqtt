@@ -17,7 +17,7 @@ class LogMgrC{
 
 	public:
 	LogMgrC(const char *path, const char *log_name=0, int filecount = 10, const LogLevel log_level=DEBUG_LOG_LEVEL)
-		: myAppender(new RollingFileAppender(path, MAX_FILE_SIZE, 100, true))
+		: myAppender(new RollingFileAppender(path, MAX_FILE_SIZE, 100, true, true))
 		  , logger(log_name?Logger::getInstance(log_name):Logger::getRoot())
 	{
 		std::unique_ptr<Layout> myLayout

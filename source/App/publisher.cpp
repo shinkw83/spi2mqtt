@@ -7,24 +7,24 @@ publisher_callback::publisher_callback(mqtt::async_client &cli, mqtt::connect_op
 void publisher_callback::reconnect() {
 	std::this_thread::sleep_for(std::chrono::milliseconds(2500));
 	try {
-		Log(INFO_LOG_LEVEL, "[publisher_callback] Reconnecting to the MQTT server...");
+		g_data::log(INFO_LOG_LEVEL, "[publisher_callback] Reconnecting to the MQTT server...");
 		client_.connect(opts_, nullptr, *this);
 	} catch (const mqtt::exception &exc) {
-		Log(ERROR_LOG_LEVEL, "[publisher_callback] Unable to reconnect to MQTT server[what:%s]", exc.what());
+		g_data::log(ERROR_LOG_LEVEL, "[publisher_callback] Unable to reconnect to MQTT server[what:%s]", exc.what());
 	}
 }
 
 void publisher_callback::on_failure(const mqtt::token &tok) {
-	Log(ERROR_LOG_LEVEL, "[publisher_callback] Connection attempt failed.");
+	g_data::log(ERROR_LOG_LEVEL, "[publisher_callback] Connection attempt failed.");
 	reconnect();
 }
 
 void publisher_callback::connected(const std::string& cause) {
-	Log(INFO_LOG_LEVEL, "[publisher_callback] Connection success.");
+	g_data::log(INFO_LOG_LEVEL, "[publisher_callback] Connection success.");
 }
 
 void publisher_callback::connection_lost(const std::string& cause) {
-	Log(ERROR_LOG_LEVEL, "[publisher_callback] Connection lost.[cause:%s]", cause.c_str());
+	g_data::log(ERROR_LOG_LEVEL, "[publisher_callback] Connection lost.[cause:%s]", cause.c_str());
 	reconnect();
 }
 
@@ -40,15 +40,15 @@ mqtt_publisher::mqtt_publisher(const char *address, const char *user, const char
 
 void mqtt_publisher::connect() {
 	try {
-		Log(INFO_LOG_LEVEL, "[mqtt_publisher] Connecting to the MQTT server...[address:%s]", address_.c_str());
+		g_data::log(INFO_LOG_LEVEL, "[mqtt_publisher] Connecting to the MQTT server...[address:%s]", address_.c_str());
 		client_.connect(opts_, nullptr, cb_);
 	} catch (const mqtt::exception &exc) {
-		Log(ERROR_LOG_LEVEL, "[mqtt_publisher] Unable to connect to MQTT server[address:%s][what:%s]", address_.c_str(), exc.what());
+		g_data::log(ERROR_LOG_LEVEL, "[mqtt_publisher] Unable to connect to MQTT server[address:%s][what:%s]", address_.c_str(), exc.what());
 	}
 }
 
 void mqtt_publisher::disconnect() {
-	Log(INFO_LOG_LEVEL, "[mqtt_publisher] Disconnecting from the MQTT server...[address:%s]", address_.c_str());
+	g_data::log(INFO_LOG_LEVEL, "[mqtt_publisher] Disconnecting from the MQTT server...[address:%s]", address_.c_str());
 	client_.disconnect()->wait();
 }
 

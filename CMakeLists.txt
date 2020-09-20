@@ -31,8 +31,11 @@ target_link_libraries(spi2mqtt
 	xthread
 	xpacket
 	json
+	common
 	boost_system
 	log4cplus
+	paho-mqtt3as
+	paho-mqttpp3
 )
 
 set_target_properties(spi2mqtt PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
