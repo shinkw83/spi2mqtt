@@ -12,31 +12,46 @@
 #include <boost/asio.hpp>
 #include "logger.hpp"
 #include <stdarg.h>
+#include <wiringPi.h>
+#include <wiringPiSPI.h>
 
 typedef struct mqtt_conn_info {
-	std::string mqtt_address_;
-    std::string mqtt_user_;
-	std::string mqtt_password_;
+	std::string mqtt_address;
+    std::string mqtt_user;
+	std::string mqtt_password;
+	std::string pub_topic;
+	std::string subs_topic;
 } mqtt_conn_info;
+
+typedef struct spi_info {
+	int channel;
+	int speed;
+
+	spi_info() {
+		channel = 0;
+		speed = 1000000;
+	}
+} spi_info;
+
+typedef struct spi_data {
+	char type;
+	char pin[4];
+	char value[4];
+
+	spi_data() {
+		type = 0;
+		memset(pin, 0x00, sizeof(pin));
+		memset(value, 0x00, sizeof(value));
+	}
+} spi_data;
 
 class g_data : public singleton_T<g_data> {
 public:
 	g_data() : ctx_() {
-		std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-		std::chrono::system_clock::duration tp = now.time_since_epoch();
-		tp -= std::chrono::duration_cast<std::chrono::seconds>(tp);
-
-		time_t tt = std::chrono::system_clock::to_time_t(now);
-		struct tm *t = localtime(&tt);
-
-		char path[1024] = {0, };
-		snprintf(path, sizeof(path), "log/spi2mqtt_%04u-%02u-%02u_%02u:%02u:%02u",
-				t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min,
-				t->tm_sec);
-
-		logmgr_ = new LogMgrC(path, "spi2mqtt");
+		logmgr_ = new LogMgrC("log/spi2mqtt.log", "spi2mqtt");
 
 		zmq_mq_address_ = "inproc://pub_mqtt_proc";
+		zmq_spi_address_ = "inproc://spi_proc";
 	}
 
 	virtual ~g_data() {
@@ -57,6 +72,11 @@ public:
 		return data->zmq_mq_address_.c_str();
 	}
 
+	static const char *zmq_spi_address() {
+		g_data *data = g_data::GetInstance();
+		return data->zmq_spi_address_.c_str();
+	}
+
 	static void set_mqtt_info(const mqtt_conn_info &info) {
 		g_data *data = g_data::GetInstance();
 		data->mq_con_info_ = info;
@@ -65,6 +85,36 @@ public:
 	static mqtt_conn_info &mq_info() {
 		g_data *data = g_data::GetInstance();
 		return data->mq_con_info_;
+	}
+
+	static void set_spi_info(const spi_info &info) {
+		g_data *data = g_data::GetInstance();
+		data->spi_info_ = info;
+	}
+
+	static const spi_info &spi() {
+		g_data *data = g_data::GetInstance();
+		return data->spi_info_;
+	}
+
+	static void set_serial_map(const std::map<std::string, std::string> &serial_map) {
+		g_data *data = g_data::GetInstance();
+		data->serial_map_ = serial_map;
+	}
+
+	static const std::map<std::string, std::string> &serial_map() {
+		g_data *data = g_data::GetInstance();
+		return data->serial_map_;
+	}
+
+	static void set_type_map(const std::map<std::string, std::string> &type_map) {
+		g_data *data = g_data::GetInstance();
+		data->type_map_ = type_map;
+	}
+
+	static const std::map<std::string, std::string> &type_map() {
+		g_data *data = g_data::GetInstance();
+		return data->type_map_;
 	}
 
 	static void set_log_level(int level) {
@@ -106,8 +156,14 @@ private:
 	zmq::context_t ctx_;
 
 	std::string zmq_mq_address_;
+	std::string zmq_spi_address_;
 
 	LogMgrC *logmgr_ = nullptr;
 
 	mqtt_conn_info mq_con_info_;
+
+	spi_info spi_info_;
+
+	std::map<std::string, std::string> serial_map_;
+	std::map<std::string, std::string> type_map_;
 };

@@ -13,6 +13,9 @@ private:
     void mqtt_subs_th();
     void mqtt_pubs_th();
 
+	void make_unit_map();
+	void make_data_type_map();
+
 private:
     std::shared_ptr<zmq::socket_t> sock_;
     std::shared_ptr<zmq::socket_t> subs_sock_;
@@ -29,4 +32,10 @@ private:
 
     std::thread mq_pubs_th_;
     std::atomic<bool> pubs_run_flag_;
+
+	std::map<std::string, std::string> pin_serial_map_;
+	std::map<std::string, std::string> pin_type_map_;
+	std::map<std::string, std::string> unit_map_;
+	std::map<std::string, std::string> data_type_map_;
+
 };
