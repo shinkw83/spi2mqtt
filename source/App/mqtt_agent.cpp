@@ -62,6 +62,9 @@ void mqtt_agent::make_data_type_map() {
 }
 
 void mqtt_agent::mqtt_subs_th() {
+	spi_sock_ = std::make_shared<zmq::socket_t>(g_data::context(), zmq::socket_type::push);
+	spi_sock_->connect(g_data::zmq_spi_address());
+
     zmq::socket_t sock(sub_client_->context(), zmq::socket_type::pull);
 	sock.connect(ZMQ_MQTT_SUBSCRIBE_ADDRESS);
 
@@ -78,8 +81,8 @@ void mqtt_agent::mqtt_subs_th() {
 			Json::Value payload;
 			reader.parse(root["payload"].asString(), payload);
 
-			std::string serial = payload["s"].asString();
-			std::string method = payload["m"].asString();
+			std::string serial = payload["s"].isNull() ? "" : payload["s"].asString();
+			std::string method = payload["m"].isNull() ? "" : payload["m"].asString();
 
 			std::string pin;
 			std::map<std::string, std::string> pin_map = g_data::serial_map();
@@ -96,15 +99,15 @@ void mqtt_agent::mqtt_subs_th() {
 
 			spi_data spi;
 			snprintf(spi.pin, sizeof(spi.pin), "%s", pin.c_str());
-			if (method == "on") {
+			int value = 0;
+			if (method == "on" or method == "ON") {
 				int value = 1;
-				std::memcpy(spi.value, &value, sizeof(spi.value));
-			} else {
-				int value = 0;
-				std::memcpy(spi.value, &value, sizeof(spi.value));
 			}
+			snprintf(spi.value, sizeof(spi.value), "%d", value);
+			spi.type = 'A';
 
 			zmq::message_t spi_message(&spi, sizeof(spi_data));
+			spi_sock_->send(spi_message, zmq::send_flags::dontwait);
         } else {
             std::this_thread::sleep_for(std::chrono::milliseconds(50));
         }
@@ -120,15 +123,18 @@ void mqtt_agent::mqtt_pubs_th() {
         auto res = sock_->recv(msg, zmq::recv_flags::dontwait);
         if (res && res.value() > 0) {
 			spi_data *data = msg.data<spi_data>();
-			auto it_serial = pin_serial_map_.find(data->pin);
+			char pin[4] = {0, };
+			snprintf(pin, sizeof(pin), "%s", data->pin);
+
+			auto it_serial = pin_serial_map_.find(pin);
 			if (it_serial == pin_serial_map_.end()) {
-				g_data::log(WARN_LOG_LEVEL, "[mqtt_agent] Pin[%s] is wrong pin number[unknown serial]", data->pin);
+				g_data::log(WARN_LOG_LEVEL, "[mqtt_agent] Pin[%s] is wrong pin number[unknown serial]", pin);
 				continue;
 			}
 
-			auto it_pin_type = pin_type_map_.find(data->pin);
+			auto it_pin_type = pin_type_map_.find(pin);
 			if (it_pin_type == pin_type_map_.end()) {
-				g_data::log(WARN_LOG_LEVEL, "[mqtt_agent] Pin[%s] is wrong pin number[unknown type]", data->pin);
+				g_data::log(WARN_LOG_LEVEL, "[mqtt_agent] Pin[%s] is wrong pin number[unknown type]", pin);
 				continue;
 			}
 
@@ -151,16 +157,13 @@ void mqtt_agent::mqtt_pubs_th() {
 			root["k"] = it_pin_type->second;
 
 			if (it_data_type->second == "int" or it_data_type->second == "long") {
-				int value = 0;
-				memcpy(&value, data->value, sizeof(int));
+				int value = std::stoi(data->value);
 				root["v"] = value;
 			} else if (it_data_type->second == "float") {
-				float value = 0.0;
-				memcpy(&value, data->value, sizeof(float));
+				float value = std::stof(data->value);
 				root["v"] = value;
 			} else if (it_data_type->second == "string") {
-				int temp = 0;
-				memcpy(&temp, data->value, sizeof(int));
+				int temp = std::stoi(data->value);
 				root["v"] = temp == 1 ? "on" : "off";
 			}
 			root["c"] = 1;

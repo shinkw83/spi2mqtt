@@ -1,5 +1,6 @@
 #include "global.hpp"
 #include "mqtt_agent.h"
+#include "spi_slave.h"
 #include <boost/algorithm/string.hpp>
 
 void init_config(const char *file_name) {
@@ -24,10 +25,10 @@ void init_config(const char *file_name) {
 	g_data::set_mqtt_info(mq_info);
 
 	spi_info spi;
-	spi.channel = cfg.getiValue("SPI", "CHANNEL", 0);
-	spi.speed = cfg.getiValue("SPI", "SPEED", 1000000);
+	spi.device = cfg.str("SPI", "DEVICE", "/dev/spidev0.0");
+	spi.speed = cfg.getiValue("SPI", "SPEED", 500000);
 	g_data::set_spi_info(spi);
-	g_data::log(INFO_LOG_LEVEL, "[main] SPI CHANNEL : %d", spi.channel);
+	g_data::log(INFO_LOG_LEVEL, "[main] SPI DEVICE : %s", spi.device.c_str());
 	g_data::log(INFO_LOG_LEVEL, "[main] SPI SPEED : %d", spi.speed);
 
 	int serial_count = cfg.getiValue("PIN_SERIAL", "COUNT", 0);
@@ -114,21 +115,12 @@ int main(int argc, char **argv) {
 	}
 
 	g_data::init();
-	g_data::set_log_level(TRACE_LOG_LEVEL);
+	g_data::set_log_level(DEBUG_LOG_LEVEL);
 
 	init_config(config_path.c_str());
-	
-	if (wiringPiSetup() == -1) {
-		std::cout << "WiringPi setup fail." << std::endl;
-		exit(-1);
-	}
-
-	spi_info spi = g_data::spi();
-	if (wiringPiSPISetup(spi.channel, spi.speed) == -1) {
-		std::cout << "WiringPiSPI setup fail." << std::endl;
-	}
 
 	mqtt_agent mq_agent_;
+	spi_slave spi_slave_;
 
 	while (true) {
 		std::this_thread::sleep_for(std::chrono::seconds(1));

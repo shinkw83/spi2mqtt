@@ -18,7 +18,7 @@ private:
 
 private:
     std::shared_ptr<zmq::socket_t> sock_;
-    std::shared_ptr<zmq::socket_t> subs_sock_;
+	std::shared_ptr<zmq::socket_t> spi_sock_;
 
     std::shared_ptr<mqtt_publisher> pub_client_;
     std::shared_ptr<mqtt_subscriber> sub_client_;

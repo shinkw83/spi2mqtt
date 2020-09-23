@@ -12,8 +12,6 @@
 #include <boost/asio.hpp>
 #include "logger.hpp"
 #include <stdarg.h>
-#include <wiringPi.h>
-#include <wiringPiSPI.h>
 
 typedef struct mqtt_conn_info {
 	std::string mqtt_address;
@@ -24,19 +22,18 @@ typedef struct mqtt_conn_info {
 } mqtt_conn_info;
 
 typedef struct spi_info {
-	int channel;
+	std::string device;
 	int speed;
 
 	spi_info() {
-		channel = 0;
-		speed = 1000000;
+		speed = 500000;
 	}
 } spi_info;
 
 typedef struct spi_data {
 	char type;
-	char pin[4];
-	char value[4];
+	char pin[3];
+	char value[8];
 
 	spi_data() {
 		type = 0;
