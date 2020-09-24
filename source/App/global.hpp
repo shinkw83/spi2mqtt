@@ -45,8 +45,6 @@ typedef struct spi_data {
 class g_data : public singleton_T<g_data> {
 public:
 	g_data() : ctx_() {
-		logmgr_ = new LogMgrC("log/spi2mqtt.log", "spi2mqtt");
-
 		zmq_mq_address_ = "inproc://pub_mqtt_proc";
 		zmq_spi_address_ = "inproc://spi_proc";
 	}
@@ -57,6 +55,11 @@ public:
 
 	static void init() {
 		__attribute__((unused)) g_data *data = g_data::GetInstance();
+	}
+
+	static void create_log_manager(std::string log_path) {
+		g_data *data = g_data::GetInstance();
+		data->logmgr_ = new LogMgrC(log_path.c_str(), "spi2mqtt");
 	}
 
 	static zmq::context_t &context() {

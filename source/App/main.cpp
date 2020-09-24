@@ -10,6 +10,13 @@ void init_config(const char *file_name) {
 		exit(-1);
 	}
 
+	std::string log_path = cfg.str("CONFIG", "LOG_PATH", "");
+	if (log_path.empty()) {
+		std::cout << "Log file path is empty. Check log file path." << std::endl;
+		exit(-1);
+	}
+	g_data::create_log_manager(log_path);
+
 	mqtt_conn_info mq_info;
 	mq_info.mqtt_address = cfg.str("MQTT", "ADDRESS", "");
 	mq_info.mqtt_user = cfg.str("MQTT", "USERNAME", "");
@@ -102,11 +109,11 @@ void init_config(const char *file_name) {
 int main(int argc, char **argv) {
 	int n = 0;
 	std::string config_path = "../config/spi2mqtt.ini";
-	while ((n = getopt(argc, argv, "hi:")) != EOF) {
+	while ((n = getopt(argc, argv, "hc:")) != EOF) {
 		switch (n) {
 			case 'h':
 				break;
-			case 'i':
+			case 'c':
 				config_path = optarg;
 				break;
 			default:
@@ -115,8 +122,6 @@ int main(int argc, char **argv) {
 	}
 
 	g_data::init();
-	g_data::set_log_level(DEBUG_LOG_LEVEL);
-
 	init_config(config_path.c_str());
 
 	mqtt_agent mq_agent_;

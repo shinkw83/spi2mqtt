@@ -1,0 +1,19 @@
+[Unit]
+Description=SPI2MQTT daemon
+After=network.target
+
+[Service]
+Type=simple
+PIDFile=/run/spi2mqtt.pid
+User=pi
+PermissionsStartOnly=true
+
+ExecStartPre=/bin/bash -c '/bin/echo "[`date`] spi2mqtt agent starting" >> /var/log/spi2mqtt.log'
+ExecStart=/home/pi/spi2mqtt/bin/spi2mqtt -c /home/pi/spi2mqtt/config/spi2mqtt.ini
+ExecStopPre=/bin/bash -c '/bin/echo "[`date`] spi2mqtt agent stopping" >> /var/log/spi2mqtt.log'
+
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
